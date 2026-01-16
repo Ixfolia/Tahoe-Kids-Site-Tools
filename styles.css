@@ -38,7 +38,7 @@ label {
     color: #555;
 }
 
-#namesInput {
+#namesInput, #lineLeaderInput {
     width: 100%;
     height: 150px;
     padding: 15px;
@@ -50,7 +50,12 @@ label {
     transition: border-color 0.3s ease;
 }
 
-#namesInput:focus {
+#lineLeaderInput {
+    height: 200px; /* Make Line Leader input bigger */
+    min-height: 150px;
+}
+
+#namesInput:focus, #lineLeaderInput:focus {
     outline: none;
     border-color: #667eea;
 }
@@ -407,6 +412,16 @@ label {
     .name-item {
         font-size: 16px;
         padding: 12px 15px;
+    }
+    
+    #namesInput, #lineLeaderInput {
+        font-size: 16px; /* Prevent zoom on iOS */
+        padding: 12px;
+    }
+    
+    #lineLeaderInput {
+        height: 180px; /* Slightly smaller on mobile */
+        min-height: 120px;
     }
 }
 

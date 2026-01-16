@@ -50,7 +50,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     startLineButton.addEventListener('click', startLineLeader);
     nextPersonButton.addEventListener('click', nextPerson);
-    lineLeaderInput.addEventListener('input', saveLineLeaderNames);
+    lineLeaderInput.addEventListener('input', function() {
+        saveLineLeaderNames();
+        autoResizeTextarea(lineLeaderInput);
+    });
+    
+    // Auto-resize functionality
+    function autoResizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.max(textarea.scrollHeight, 200) + 'px';
+    }
+    
+    // Initial auto-resize for Line Leader input
+    setTimeout(() => {
+        autoResizeTextarea(lineLeaderInput);
+    }, 100);
+    
     syncButton.addEventListener('click', syncLineLeaderState);
     debugButton.addEventListener('click', toggleDebugPanel);
     
