@@ -3,23 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Name Picker</title>
+    <title>Classroom Tools</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Random Name Picker</h1>
+        <h1>Classroom Tools</h1>
         
-        <div class="input-section">
-            <label for="namesInput">Enter names (one per line):</label>
-            <textarea id="namesInput" placeholder="John&#10;Jane&#10;Bob&#10;Alice"></textarea>
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="random-picker">Random Name Picker</button>
+            <button class="tab-button" data-tab="line-leader">Line Leader</button>
         </div>
         
-        <button id="pickButton">Pick Random Name</button>
-        
-        <div id="result" class="result-section">
-            <h2>Selected Name:</h2>
-            <div id="selectedName" class="selected-name"></div>
+        <div class="tab-content">
+            <div id="random-picker" class="tab-pane active">
+                <div class="input-section">
+                    <label for="namesInput">Enter names (one per line):</label>
+                    <textarea id="namesInput" placeholder="John&#10;Jane&#10;Bob&#10;Alice"></textarea>
+                </div>
+                
+                <button id="pickButton">Pick Random Name</button>
+                
+                <div id="result" class="result-section">
+                    <h2>Selected Name:</h2>
+                    <div id="selectedName" class="selected-name"></div>
+                </div>
+            </div>
+            
+            <div id="line-leader" class="tab-pane">
+                <div class="input-section">
+                    <label for="lineLeaderInput">Enter names (one per line):</label>
+                    <textarea id="lineLeaderInput" placeholder="John&#10;Jane&#10;Bob&#10;Alice"></textarea>
+                </div>
+                
+                <div class="sync-controls">
+                    <button id="syncButton" class="sync-button">Sync Now</button>
+                    <div id="syncStatus" class="sync-status"></div>
+                    <button id="debugButton" class="debug-button">Debug Info</button>
+                </div>
+                
+                <div id="debugPanel" class="debug-panel" style="display: none;">
+                    <h4>Debug Information</h4>
+                    <div id="debugContent"></div>
+                </div>
+                
+                <button id="startLineButton">Start Line Leader</button>
+                <button id="nextPersonButton" style="display: none;">Next Person</button>
+                
+                <div id="lineResult" class="line-section">
+                    <div id="nameList" class="name-list"></div>
+                </div>
+            </div>
         </div>
     </div>
     
