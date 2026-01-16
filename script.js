@@ -324,13 +324,44 @@ document.addEventListener('DOMContentLoaded', function() {
         if (cleanersNames.length < 2) {
             showCleanersError('Please enter at least two names to pick cleaners.');
             return;
+        }
+        
+        // Remove any existing error messages
+        removeCleanersErrorMessages();
+        
+        // Get available names (excluding recently picked ones)
+        const availableNames = cleanersNames.filter(name => !cleanersHistory.includes(name));
+        
+        // If not enough available names, reset history
+        let namesToPickFrom = availableNames;
+        if (availableNames.length < 2) {
+            console.log('DEBUG: Not enough available names, resetting history');
+            cleanersHistory = [];
+            namesToPickFrom = cleanersNames;
+        }
+        
+        // Pick two random different names
+        const shuffled = [...namesToPickFrom].sort(() => Math.random() - 0.5);
+        currentCleaners = [shuffled[0], shuffled[1]];
+        
+        // Add to history
+        currentCleaners.forEach(name => {
+            cleanersHistory.push(name);
+        });
+        
+        // Keep history size manageable
+        if (cleanersHistory.length > MAX_HISTORY) {
+            cleanersHistory = cleanersHistory.slice(-MAX_HISTORY);
+        }
+        
+        console.log('DEBUG: Picked cleaners:', currentCleaners);
+        console.log('DEBUG: Updated history:', cleanersHistory);
+        
+        // Display the result with green background
         cleaner1.textContent = currentCleaners[0];
         cleaner2.textContent = currentCleaners[1];
-        console.log('DEBUG: Cleaners UI updated for active state');
-    } else {
-        cleaner1.textContent = '';
-        cleaner2.textContent = '';
-        console.log('DEBUG: Cleaners UI updated for inactive state');
+        cleaner1.classList.add('picked');
+        cleaner2.classList.add('picked');
         
         isCleanersActive = true;
         
@@ -392,6 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
             names: cleanersNames,
             currentCleaners: currentCleaners,
             isActive: isCleanersActive,
+            history: cleanersHistory,
             timestamp: new Date().toISOString()
         };
         console.log('DEBUG: Getting cleaners state:', state);
@@ -443,11 +475,13 @@ document.addEventListener('DOMContentLoaded', function() {
         cleanersNames = state.names;
         currentCleaners = state.currentCleaners || [];
         isCleanersActive = state.isActive || false;
+        cleanersHistory = state.history || [];
         
         console.log('DEBUG: Updated cleaners local variables:', {
             cleanersNames,
             currentCleaners,
-            isCleanersActive
+            isCleanersActive,
+            cleanersHistory
         });
         
         // Update UI
@@ -713,7 +747,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 isLineLeaderActive: isLineLeaderActive,
                 cleanersNames: cleanersNames,
                 currentCleaners: currentCleaners,
-                isCleanersActive: isCleanersActive
+                isCleanersActive: isCleanersActive,
+                cleanersHistory: cleanersHistory
             },
             timestamp: new Date().toISOString()
         };
