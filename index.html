@@ -13,6 +13,7 @@
         <div class="tab-navigation">
             <button class="tab-button active" data-tab="random-picker">Random Name Picker</button>
             <button class="tab-button" data-tab="line-leader">Line Leader</button>
+            <button class="tab-button" data-tab="cleaners">Cleaners</button>
         </div>
         
         <div class="tab-content">
@@ -52,6 +53,28 @@
                 
                 <div id="lineResult" class="line-section">
                     <div id="nameList" class="name-list"></div>
+                </div>
+            </div>
+            
+            <div id="cleaners" class="tab-pane">
+                <div class="input-section">
+                    <label for="cleanersInput">Enter names (one per line):</label>
+                    <textarea id="cleanersInput" placeholder="John&#10;Jane&#10;Bob&#10;Alice"></textarea>
+                </div>
+                
+                <div class="sync-controls">
+                    <button id="cleanersSyncButton" class="sync-button">Sync Now</button>
+                    <div id="cleanersSyncStatus" class="sync-status"></div>
+                </div>
+                
+                <button id="pickCleanersButton">Pick Cleaners</button>
+                
+                <div id="cleanersResult" class="cleaners-section">
+                    <h2>Today's Cleaners:</h2>
+                    <div id="cleanersList" class="cleaners-list">
+                        <div id="cleaner1" class="cleaner-name"></div>
+                        <div id="cleaner2" class="cleaner-name"></div>
+                    </div>
                 </div>
             </div>
         </div>

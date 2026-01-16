@@ -41,9 +41,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const debugPanel = document.getElementById('debugPanel');
     const debugContent = document.getElementById('debugContent');
     
+    // Cleaners functionality
+    const cleanersInput = document.getElementById('cleanersInput');
+    const pickCleanersButton = document.getElementById('pickCleanersButton');
+    const cleaner1 = document.getElementById('cleaner1');
+    const cleaner2 = document.getElementById('cleaner2');
+    const cleanersSyncButton = document.getElementById('cleanersSyncButton');
+    const cleanersSyncStatus = document.getElementById('cleanersSyncStatus');
+    
     let lineLeaderNames = [];
     let currentPersonIndex = 0;
     let isLineLeaderActive = false;
+    
+    let cleanersNames = [];
+    let currentCleaners = [];
+    let isCleanersActive = false;
+    let cleanersHistory = []; // Track recently picked cleaners
+    const MAX_HISTORY = 10; // Keep track of last 10 selections
     
     // Load saved line leader names
     loadLineLeaderNames();
@@ -64,10 +78,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial auto-resize for Line Leader input
     setTimeout(() => {
         autoResizeTextarea(lineLeaderInput);
+        autoResizeTextarea(cleanersInput);
     }, 100);
+    
+    // Load saved cleaners names
+    loadCleanersNames();
     
     syncButton.addEventListener('click', syncLineLeaderState);
     debugButton.addEventListener('click', toggleDebugPanel);
+    
+    // Cleaners event listeners
+    pickCleanersButton.addEventListener('click', pickCleaners);
+    cleanersInput.addEventListener('input', function() {
+        saveCleanersNames();
+        autoResizeTextarea(cleanersInput);
+    });
+    cleanersSyncButton.addEventListener('click', syncCleanersState);
     
     // Auto-sync when line leader state changes
     let autoSyncTimeout;
@@ -282,6 +308,73 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessages.forEach(msg => msg.remove());
     }
     
+    // Cleaners Functions
+    function pickCleaners() {
+        const namesText = cleanersInput.value.trim();
+        
+        if (!namesText) {
+            showCleanersError('Please enter at least one name.');
+            return;
+        }
+        
+        cleanersNames = namesText.split('\n')
+            .map(name => name.trim())
+            .filter(name => name.length > 0);
+        
+        if (cleanersNames.length < 2) {
+            showCleanersError('Please enter at least two names to pick cleaners.');
+            return;
+        cleaner1.textContent = currentCleaners[0];
+        cleaner2.textContent = currentCleaners[1];
+        console.log('DEBUG: Cleaners UI updated for active state');
+    } else {
+        cleaner1.textContent = '';
+        cleaner2.textContent = '';
+        console.log('DEBUG: Cleaners UI updated for inactive state');
+        
+        isCleanersActive = true;
+        
+        // Auto-sync after picking cleaners
+        autoSyncCleaners();
+        
+        // Remove the highlight after 3 seconds
+        setTimeout(() => {
+            cleaner1.classList.remove('picked');
+            cleaner2.classList.remove('picked');
+        }, 3000);
+    }
+    
+    function saveCleanersNames() {
+        const namesText = cleanersInput.value;
+        localStorage.setItem('savedCleanersNames', namesText);
+    }
+    
+    function loadCleanersNames() {
+        const savedNames = localStorage.getItem('savedCleanersNames');
+        if (savedNames) {
+            cleanersInput.value = savedNames;
+        }
+    }
+    
+    function showCleanersError(message) {
+        removeCleanersErrorMessages();
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        
+        pickCleanersButton.parentNode.insertBefore(errorDiv, pickCleanersButton.nextSibling);
+        
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 3000);
+    }
+    
+    function removeCleanersErrorMessages() {
+        const errorMessages = document.querySelectorAll('.error-message');
+        errorMessages.forEach(msg => msg.remove());
+    }
+    
     // Sync functionality
     function getLineLeaderState() {
         const state = {
@@ -291,6 +384,17 @@ document.addEventListener('DOMContentLoaded', function() {
             timestamp: new Date().toISOString()
         };
         console.log('DEBUG: Getting current state:', state);
+        return state;
+    }
+    
+    function getCleanersState() {
+        const state = {
+            names: cleanersNames,
+            currentCleaners: currentCleaners,
+            isActive: isCleanersActive,
+            timestamp: new Date().toISOString()
+        };
+        console.log('DEBUG: Getting cleaners state:', state);
         return state;
     }
     
@@ -328,6 +432,40 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
     
+    function setCleanersState(state) {
+        console.log('DEBUG: Setting cleaners state from sync:', state);
+        
+        if (!state || !state.names) {
+            console.log('DEBUG: Invalid cleaners state, returning false');
+            return false;
+        }
+        
+        cleanersNames = state.names;
+        currentCleaners = state.currentCleaners || [];
+        isCleanersActive = state.isActive || false;
+        
+        console.log('DEBUG: Updated cleaners local variables:', {
+            cleanersNames,
+            currentCleaners,
+            isCleanersActive
+        });
+        
+        // Update UI
+        cleanersInput.value = cleanersNames.join('\n');
+        
+        if (isCleanersActive && currentCleaners.length >= 2) {
+            cleaner1.textContent = currentCleaners[0];
+            cleaner2.textContent = currentCleaners[1];
+            console.log('DEBUG: Cleaners UI updated for active state');
+        } else {
+            cleaner1.textContent = '';
+            cleaner2.textContent = '';
+            console.log('DEBUG: Cleaners UI updated for inactive state');
+        }
+        
+        return true;
+    }
+    
     async function syncLineLeaderState(showStatus = true) {
         const state = getLineLeaderState();
         
@@ -358,6 +496,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateSyncStatus('error', 'Offline - Saved locally');
             }
         }
+    }
+    
+    async function syncCleanersState(showStatus = true) {
+        const state = getCleanersState();
+        
+        if (showStatus) {
+            updateCleanersSyncStatus('syncing', 'Syncing...');
+        }
+        
+        try {
+            // Use GitHub Pages as a simple data store
+            const response = await saveCleanersToGitHubStorage(state);
+            
+            if (response.success) {
+                if (showStatus) {
+                    updateCleanersSyncStatus('success', `Synced at ${new Date().toLocaleTimeString()}`);
+                }
+                // Also save to localStorage as backup
+                localStorage.setItem('cleanersState', JSON.stringify(state));
+            } else {
+                throw new Error(response.error || 'Sync failed');
+            }
+        } catch (error) {
+            console.error('Cleaners sync failed:', error);
+            // Fallback to localStorage
+            localStorage.setItem('cleanersState', JSON.stringify(state));
+            
+            if (showStatus) {
+                updateCleanersSyncStatus('error', 'Offline - Saved locally');
+            }
+        }
+    }
+    
+    // Auto-sync for cleaners
+    let autoSyncCleanersTimeout;
+    function autoSyncCleaners() {
+        clearTimeout(autoSyncCleanersTimeout);
+        autoSyncCleanersTimeout = setTimeout(() => {
+            if (isCleanersActive) {
+                syncCleanersState(false); // Silent auto-sync
+            }
+        }, 2000); // Wait 2 seconds after changes
     }
     
     async function loadFromGitHubStorage() {
@@ -413,6 +593,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    async function saveCleanersToGitHubStorage(state) {
+        try {
+            // For demo purposes, we'll simulate GitHub storage with localStorage
+            console.log('DEBUG: Saving cleaners state to localStorage:', state);
+            localStorage.setItem('cleanersState', JSON.stringify(state));
+            
+            // Verify it was saved
+            const saved = localStorage.getItem('cleanersState');
+            console.log('DEBUG: Verified cleaners saved data:', saved);
+            
+            return { success: true };
+        } catch (error) {
+            console.error('DEBUG: Cleaners save failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
     function updateSyncStatus(status, message) {
         syncStatus.className = `sync-status ${status}`;
         syncStatus.textContent = message;
@@ -425,20 +622,67 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    function updateCleanersSyncStatus(status, message) {
+        cleanersSyncStatus.className = `sync-status ${status}`;
+        cleanersSyncStatus.textContent = message;
+        
+        if (status === 'success' || status === 'error') {
+            setTimeout(() => {
+                cleanersSyncStatus.className = 'sync-status';
+                cleanersSyncStatus.textContent = '';
+            }, 3000);
+        }
+    }
+    
     // Load synced state on page load
     async function loadSyncedState() {
         try {
-            const state = await loadFromGitHubStorage();
-            if (state) {
-                setLineLeaderState(state);
+            // Load Line Leader state
+            const lineLeaderState = await loadFromGitHubStorage();
+            if (lineLeaderState) {
+                setLineLeaderState(lineLeaderState);
                 updateSyncStatus('success', 'Loaded from sync');
                 setTimeout(() => {
                     syncStatus.className = 'sync-status';
                     syncStatus.textContent = '';
                 }, 2000);
             }
+            
+            // Load Cleaners state
+            const cleanersState = await loadCleanersFromGitHubStorage();
+            if (cleanersState) {
+                setCleanersState(cleanersState);
+                updateCleanersSyncStatus('success', 'Loaded from sync');
+                setTimeout(() => {
+                    cleanersSyncStatus.className = 'sync-status';
+                    cleanersSyncStatus.textContent = '';
+                }, 2000);
+            }
         } catch (error) {
             console.error('Failed to load synced state:', error);
+        }
+    }
+    
+    async function loadCleanersFromGitHubStorage() {
+        try {
+            console.log('DEBUG: Attempting to load cleaners from GitHub storage...');
+            
+            // For demo purposes, we'll use localStorage
+            console.log('DEBUG: Loading cleaners from localStorage...');
+            const savedState = localStorage.getItem('cleanersState');
+            console.log('DEBUG: Found cleaners saved state in localStorage:', savedState);
+            
+            if (savedState) {
+                const parsed = JSON.parse(savedState);
+                console.log('DEBUG: Parsed cleaners state:', parsed);
+                return parsed;
+            }
+            
+            console.log('DEBUG: No cleaners saved state found');
+            return null;
+        } catch (error) {
+            console.error('DEBUG: Cleaners load failed:', error);
+            return null;
         }
     }
     
@@ -458,13 +702,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const debugInfo = {
             localStorage: {
                 lineLeaderState: localStorage.getItem('lineLeaderState'),
+                cleanersState: localStorage.getItem('cleanersState'),
                 savedLineLeaderNames: localStorage.getItem('savedLineLeaderNames'),
+                savedCleanersNames: localStorage.getItem('savedCleanersNames'),
                 savedNames: localStorage.getItem('savedNames')
             },
             currentVariables: {
                 lineLeaderNames: lineLeaderNames,
                 currentPersonIndex: currentPersonIndex,
-                isLineLeaderActive: isLineLeaderActive
+                isLineLeaderActive: isLineLeaderActive,
+                cleanersNames: cleanersNames,
+                currentCleaners: currentCleaners,
+                isCleanersActive: isCleanersActive
             },
             timestamp: new Date().toISOString()
         };
